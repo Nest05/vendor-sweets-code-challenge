@@ -21,7 +21,7 @@ class Sweet(db.Model, SerializerMixin):
     vendor_sweets = db.relationship('VendorSweet', back_populates='sweet', cascade='delete')
 
     # Add serialization
-    serialize_rules = ('-vendor_sweets.sweet',)
+    serialize_rules = ('-vendor_sweets',)
 
     def __repr__(self):
         return f'<Sweet {self.id}>'
@@ -37,7 +37,7 @@ class Vendor(db.Model, SerializerMixin):
     vendor_sweets = db.relationship('VendorSweet', back_populates='vendor', cascade='delete')
 
     # Add serialization
-    serialize_rules = ('-vendor_sweets.vendor',)
+    serialize_rules = ('-vendor_sweets',)
 
     def __repr__(self):
         return f'<Vendor {self.id}>'
@@ -57,12 +57,12 @@ class VendorSweet(db.Model, SerializerMixin):
     sweet = db.relationship('Sweet', back_populates='vendor_sweets')
 
     # Add serialization
-    serialize_rules = ('-sweet.vendor_sweets', '-vendor.vendor_sweets',)
+    serialize_rules = ('-sweet', '-vendor',)
 
     # Add validation
     @validates('price')
-    def validate_phone_number(self, key, price):
-        if int(price) < 0 or price is None:
+    def validate_price(self, attr, price):
+        if price is None or price < 0:
             raise ValueError("Invalid Price input")
         return price
     

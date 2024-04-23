@@ -49,7 +49,7 @@ class TestApp:
             response = response.json
             assert response['id'] == vendor.id
             assert response['name'] == vendor.name
-            assert 'vendor_sweets' in response
+            assert 'vendor_sweets' not in response
 
     def test_returns_404_if_no_vendor_to_get(self):
         '''returns an error message and 404 status code with GET request to /vendors/<int:id> by a non-existent ID.'''

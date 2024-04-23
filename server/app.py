@@ -2,7 +2,7 @@
 
 from models import db, Sweet, Vendor, VendorSweet
 from flask_migrate import Migrate
-from flask import Flask, request, make_response
+from flask import Flask, request, make_response, jsonify
 from flask_restful import Api, Resource
 import os
 
@@ -34,7 +34,7 @@ def vendors_by_id(id):
     if vendor is None:
         # Create a response for a non-existent vendor
         response_body = {
-            "error": "Vendor not found."
+            "error": "Vendor not found"
         }
         response = make_response(response_body, 404)  # Use 404 status code for not found
         return response
@@ -60,7 +60,7 @@ def sweets_by_id(id):
     if sweet is None:
         # Create a response for a non-existent sweet
         response_body = {
-            "error": "Sweet not found."
+            "error": "Sweet not found"
         }
         response = make_response(response_body, 404)  # Use 404 status code for not found
         return response
@@ -82,7 +82,7 @@ def delete_vendor_sweet(id):
     if vendor_sweet is None:
         # Create a response for a non-existent VendorSweet
         response_body = {
-            "error": "VendorSweet not found."
+            "error": "VendorSweet not found"
         }
         response = make_response(response_body, 404)  # Use 404 status code for not found
         return response
@@ -94,66 +94,67 @@ def delete_vendor_sweet(id):
         response_body = {}
         response = make_response(
         response_body,
-        200
+        204
         )
         return response
 
 @app.route('/vendor_sweets', methods=['GET', 'POST'])
 def vendor_sweets():
     if request.method == 'GET':
-        vendor_sweets = [vendor_sweets.to_dict() for vendor_sweets in VendorSweet.query.all()]
-        return make_response( vendor_sweets, 200 )
-    
+        vendor_sweets = [vendor_sweet.to_dict() for vendor_sweet in VendorSweet.query.all()]
+        return make_response(jsonify(vendor_sweets), 200)
+
     elif request.method == 'POST':
-        price=request.form.get("price")
-        vendor_id=request.form.get("vendor_id")
-        sweet_id=request.form.get("sweet_id")
+        price = request.json.get("price")
+        vendor_id = request.json.get("vendor_id")
+        sweet_id = request.json.get("sweet_id")
 
-       
-        if vendor_id and sweet_id:
-            new_sweet_vendor = VendorSweet(
-                price=price,
-                vendor_id=vendor_id,
-                sweet_id=sweet_id
-            )
-
-            db.session.add(new_sweet_vendor)
-            db.session.commit()
-
-
-            vendor = Vendor.query.get(vendor_id)  # Fetch the vendor details based on vendor_id
+        if price and vendor_id and sweet_id:
+            vendor = Vendor.query.get(vendor_id)
             sweet = Sweet.query.get(sweet_id)
-            # Check if vendor exists and prepare the response data
-            next_id = len(VendorSweet.query.all())
 
             if vendor and sweet:
-                response_data = {
-                    'id': next_id,
-                    'price': price,
-                    'sweet': {
-                        'id': sweet.id,
-                        'name': sweet.name
-                    },
-                    'sweet_id': sweet_id,
-                    'vendor': {
-                        'id': vendor.id,
-                        'name': vendor.name
-                    },
-                    'vendor_id': vendor_id
-                }
-                return make_response(response_data, 201)
+                if price > 0:  # Perform validation check for price
+                    new_sweet_vendor = VendorSweet(
+                        price=price,
+                        vendor_id=vendor_id,
+                        sweet_id=sweet_id
+                    )
+
+                    db.session.add(new_sweet_vendor)
+                    db.session.commit()
+
+                    response_data = {
+                        'price': price,
+                        'vendor_id': vendor_id,
+                        'sweet_id': sweet_id,
+                        'id': new_sweet_vendor.id,
+                        'sweet': {
+                            'id': sweet.id,
+                            'name': sweet.name
+                        },
+                        'vendor': {
+                            'id': vendor.id,
+                            'name': vendor.name
+                        }
+                    }
+
+                    return make_response(jsonify(response_data), 201)
+                else:
+                    response_data = {
+                        'errors': ['validation errors']
+                    }
+                    return make_response(jsonify(response_data), 400)
             else:
                 response_data = {
                     'errors': ['Vendor not found']
                 }
-                return make_response(response_data, 404)
+                return make_response(jsonify(response_data), 404)
         else:
             response_data = {
-                'errors': ['Validation errors']
+                'errors': ['validation errors']
             }
-        
-            return make_response(response_data, 400)
-
+            return make_response(jsonify(response_data), 400)
 
 if __name__ == '__main__':
     app.run(port=5555, debug=True)
